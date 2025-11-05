@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
+//using System.Numerics;
+//using Unity.VisualScripting;
 using UnityEngine;
 
 public class Weapon : MonoBehaviour
@@ -16,27 +17,46 @@ public class Weapon : MonoBehaviour
     public GameObject bullet;
     public Transform bulletCasePos;
     public GameObject bulletCase;
+    public Transform MainCamera;
+    public float bulletSpeed = 200f;
 
     public void Use()
     {
         if (type == Type.Melee)
         {
+            //StopCoroutine("Swing");
+            //StartCoroutine("Swing");
+            StartCoroutine(Swing());
             // Logic for melee weapon usage
-            if (meleeArea != null)
-            {
-                StopCoroutine("Swing");
-                StartCoroutine("Swing");
-                // Additional melee logic can be added here
-            }
+            // if (meleeArea != null)
+            // {
+            //     StopCoroutine("Swing");
+            //     StartCoroutine("Swing");
+            //     // Additional melee logic can be added here
+            // }
         }
         else if (type == Type.Range)
         {
-            StartCoroutine("Shot");
+            // -- StartCoroutine("Shot");
             // Logic for ranged weapon usage
             // This could involve shooting a projectile or similar
+            StartCoroutine(Shot(bulletPos.forward));
         }
     }
 
+    public void Use(Vector3 aimDir)
+    {
+        if (type == Type.Melee)
+        {
+            //StartCoroutine("Swing");
+            StartCoroutine(Swing());
+        }
+        else if (type == Type.Range)
+        {
+            StartCoroutine(Shot(aimDir));
+        }
+    }
+    //IEnumerator Swing()
     IEnumerator Swing()
     {
         //1
@@ -56,18 +76,24 @@ public class Weapon : MonoBehaviour
         //     trailEffect.enabled = true;
         // }
         // Additional logic for swinging the melee weapon can be added here
-        yield return null;
+        // yield return null;
     }
 
     // Use() 메인루틴 -> Swing() 서브루틴 -> Use() 메인루틴
     // Use() 메인루틴 + Swing() 코루틴 (Co-Op)
 
-    IEnumerator Shot()
+    IEnumerator Shot(Vector3 aimDir)
     {
         //#1. 총알발사
-        GameObject instantBullet = Instantiate(bullet, bulletPos.position, bulletPos.rotation);
+        // GameObject instantBullet = Instantiate(bullet, bulletPos.position, bulletPos.rotation);
+        // Rigidbody bulletRigid = instantBullet.GetComponent<Rigidbody>();
+        // bulletRigid.velocity = bulletPos.forward * 200; // Adjust the speed as necessary
+
+
+        GameObject instantBullet = Instantiate(bullet, bulletPos.position, Quaternion.LookRotation(aimDir));
         Rigidbody bulletRigid = instantBullet.GetComponent<Rigidbody>();
-        bulletRigid.velocity = bulletPos.forward * 50; // Adjust the speed as necessary
+        if (bulletRigid != null) bulletRigid.velocity = aimDir.normalized * bulletSpeed;
+        // bulletRigid.velocity = MainCamera.forward * 50;
         // if (bulletCase != null && bulletCasePos != null)
         // {
         //     GameObject instantBulletCase = Instantiate(bulletCase, bulletCasePos.position, bulletCasePos.rotation);

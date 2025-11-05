@@ -9,7 +9,10 @@ public class player : MonoBehaviour
 {
     public Transform MainCamera;
     // Start is called before the first frame update
-    public float Speed;
+    public float Speed=5f;
+    public float maxSpeed=10f;
+    public int jumpCount = 0;
+    public int maxJumpCount = 2; // 최대 점프 횟수
 
     // public GameObject[] weapons = new GameObject[3]; // 3개의 무기 오브젝트
     public GameObject[] weapons;
@@ -24,6 +27,7 @@ public class player : MonoBehaviour
     bool sDown1;
     bool sDown2;
     bool sDown3;
+    bool sDown4;
     bool dDown;
     
     bool isJump;
@@ -79,6 +83,7 @@ public class player : MonoBehaviour
         sDown1 = Input.GetButtonDown("Swap1");
         sDown2 = Input.GetButtonDown("Swap2");
         sDown3 = Input.GetButtonDown("Swap3");
+        sDown4 = Input.GetButtonDown("Swap4");
         dDown = Input.GetButton("Dodge");
     }
     void Move()
@@ -178,13 +183,16 @@ public class player : MonoBehaviour
     {
         // if (jDown && !isJump)
         // if (jDown && moveVec == Vector3.zero && !isDodge && !isSwap)
-            if (jDown)
-            {
-                rigid.AddForce(Vector3.up * 15, ForceMode.Impulse);
-                anim.SetBool("isJump", true);
-                anim.SetTrigger("doJump");
-                isJump = true;
-            }
+
+        // if (jDown && jumpCount < maxJumpCount)
+        if (jDown && !isJump)
+        {
+            rigid.AddForce(Vector3.up * 15, ForceMode.Impulse);
+            anim.SetBool("isJump", true);
+            anim.SetTrigger("doJump");
+            isJump = true;
+            // jumpCount++;
+        }
             /*
             if (jDown && !isJump)
             {
@@ -203,7 +211,7 @@ public class player : MonoBehaviour
         }
 
         fireDelay += Time.deltaTime; // 공격 후 재사용 대기 시간 증가
-        isFireReady = equipWeapon.rate < fireDelay; // 공격 가능 여부 판단
+        isFireReady = fireDelay >= equipWeapon.rate; // 공격 가능 여부 판단
 
         if (fDown && isFireReady && !isDodge && !isSwap)
         {
@@ -211,8 +219,9 @@ public class player : MonoBehaviour
             // 무기 사용
             equipWeapon.Use();
             anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ? "doSwing" : "doShot");
-            //isFireReady = false; // 공격 후 재사용 대기 시간 설정
+            isFireReady = false; // 공격 후 재사용 대기 시간 설정
             fireDelay = 0; // 공격 속도에 따라 재사용 대기 시간 설정
+            isFireReady = false; // 공격 후 재사용 대기 시간 설정
         }
         
 
@@ -240,21 +249,28 @@ public class player : MonoBehaviour
     {
         // if (jDown && !isJump)
         // if (dDown && moveVec != Vector3.zero && !isJump && !isDodge && !isSwap)
-            if (dDown && !isJump && !isDodge && !isSwap)
+        // if (dDown && !isJump && !isDodge && !isSwap)
+            if (dDown && !isSwap && !isDodge)
             {
                 isDodge = true;
-                // Debug.Log("Dodge");
-                // rigid.AddForce(moveVec * Speed * 2, ForceMode.Impulse);
-                // transform.position += moveVec * Speed * 2 * Time.deltaTime;
-                // transform.position += moveVec * Speed * 2 * Time.deltaTime;
-                // rigid.MovePosition(transform.position + moveVec * Speed * 2 * Time.deltaTime);
-                // rigid.velocity = moveVec * Speed * 2;
+            // Debug.Log("Dodge");
+            // rigid.AddForce(moveVec * Speed * 2, ForceMode.Impulse);
+            // transform.position += moveVec * Speed * 2 * Time.deltaTime;
+            // transform.position += moveVec * Speed * 2 * Time.deltaTime;
+            // rigid.MovePosition(transform.position + moveVec * Speed * 2 * Time.deltaTime);
+            // rigid.velocity = moveVec * Speed * 2;
 
-                // 대시 속도 증가
-                // rigid.AddForce(moveVec * Speed * 2, ForceMode.Impulse);
-            
-                Speed *= 1.5f; // 대시 속도 증가
-                rigid.AddForce(Vector3.up * 15, ForceMode.Impulse);
+            // 대시 속도 증가
+            // rigid.AddForce(moveVec * Speed * 2, ForceMode.Impulse);
+
+                
+                 // 대시 속도 증가
+                if (Speed < maxSpeed)
+                {
+                    Speed *= 1.5f; // 대시 속도 증가
+                // Speed = maxSpeed; // 최대 속도 제한
+                }
+                rigid.AddForce(transform.forward * 15, ForceMode.Impulse);
 
                 anim.SetTrigger("doDodge");
                 isJump = true;
@@ -279,39 +295,56 @@ public class player : MonoBehaviour
 
     void Swap()
     {
-        if(sDown1 && (!hasWeapons[0] || equipWeaponIndex ==  0))
-        {
-            return;
-        }
-        else if(sDown2 && (!hasWeapons[1] || equipWeaponIndex ==  1))
-        {
-            return;
-        }
-        else if(sDown3 && (!hasWeapons[2] || equipWeaponIndex == 2))
-        {
-            return;
-        }
-
         int weaponIndex = -1;
+
+        if (sDown1 && (!hasWeapons[0] || equipWeaponIndex == 0))
+        {
+            return;
+        }
+        else if (sDown2 && (!hasWeapons[1] || equipWeaponIndex == 1))
+        {
+            return;
+        }
+        else if (sDown3 && (!hasWeapons[2] || equipWeaponIndex == 2))
+        {
+            return;
+        }
+        else if (sDown4 && (!hasWeapons[3] || equipWeaponIndex == 3))
+        {
+            return;
+        }
+        // else return;
+
+        // // 무기 교체 인덱스 설정
+        // if (sDown1 && hasWeapons[0]) weaponIndex = 0;
+        // if (sDown2 && hasWeapons[1]) weaponIndex = 1;
+        // if (sDown3 && hasWeapons[2]) weaponIndex = 2;
+        // if (sDown4 && hasWeapons[3]) weaponIndex = 3;
+
         if (sDown1) weaponIndex = 0;
         if (sDown2) weaponIndex = 1;
         if (sDown3) weaponIndex = 2;
+        if (sDown4) weaponIndex = 3;
 
+        // if (!hasWeapons[weaponIndex] || equipWeaponIndex == weaponIndex) return;
+
+        // if (!isJump && !isDodge) return;
         // if (weaponIndex < 0 || weaponIndex >= weapons.Length)
         // {
         //     Debug.LogWarning("Invalid weapon index: " + weaponIndex);
         //     return;
         // }
-        if ((sDown1 || sDown2 || sDown3) && !isJump && !isDodge)
+        if ((sDown1 || sDown2 || sDown3 || sDown4) && !isJump && !isDodge)        
         {
-            // 무기 교체
+         //   무기 교체
             if (equipWeapon != null)
             {
+                // equipWeapon.gameObject.SetActive(false);
                 equipWeapon.gameObject.SetActive(false);
             }
             // weapons[weaponIndex].SetActive(true);
             // Debug.Log("Swap to weapon " + (weaponIndex + 1));
-            // equipWeaponIndex = weaponIndex; // 현재 장착된 무기 인덱스 업데이트
+            //equipWeaponIndex = weaponIndex; // 현재 장착된 무기 인덱스 업데이트
 
             // equipWeapon = weapons[weaponIndex];
             equipWeapon = weapons[weaponIndex].GetComponent<Weapon>();
@@ -352,6 +385,7 @@ public class player : MonoBehaviour
     }
     void Interact()
     {
+        
         if (iDown && nearObject != null && !isJump && !isDodge)
         {
             // Debug.Log("Interaction with " + nearObject.name);
@@ -378,6 +412,7 @@ public class player : MonoBehaviour
     {
         if (collision.gameObject.tag == "floor")
         {
+            jumpCount = 0; // 바닥에 닿으면 점프 횟수 초기화
             anim.SetBool("isJump", false);
             isJump = false;
         }
@@ -385,11 +420,16 @@ public class player : MonoBehaviour
 
     void OnTriggerStay(Collider other)
     {
+        if (other == null || other.gameObject == null)
+            return;
         if (other.tag == "Weapon")
         {
             nearObject = other.gameObject;
         }
-        Debug.Log(nearObject.name);
+        if (nearObject != null)  // 안전하게 확인
+        {
+            Debug.Log(nearObject.name);
+        }
     }
     
     void OnTriggerExit(Collider other)

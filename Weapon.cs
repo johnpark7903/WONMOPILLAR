@@ -92,7 +92,7 @@ public class Weapon : MonoBehaviour
 
         GameObject instantBullet = Instantiate(bullet, bulletPos.position, Quaternion.LookRotation(aimDir));
         Rigidbody bulletRigid = instantBullet.GetComponent<Rigidbody>();
-        if (bulletRigid != null) bulletRigid.velocity = aimDir.normalized * bulletSpeed;
+        if (bulletRigid != null) bulletRigid.linearVelocity = aimDir.normalized * bulletSpeed;
         // bulletRigid.velocity = MainCamera.forward * 50;
         // if (bulletCase != null && bulletCasePos != null)
         // {

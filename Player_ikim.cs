@@ -12,6 +12,12 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+
 public class Player_ikim : MonoBehaviour
 {
     public Transform MainCamera;
@@ -28,7 +34,7 @@ public class Player_ikim : MonoBehaviour
     public int maxCoin;
     public int health;
     public int maxHealth;
-    
+
     public int hasGrenade;
     public int maxHasGrenade;
 
@@ -38,8 +44,8 @@ public class Player_ikim : MonoBehaviour
     // public bool[] hasWeapons = new bool[3] { false, false, false }; // 3개의 무기 슬롯
     public bool[] hasWeapons;
     GameObject nearObject;
-    
-    
+
+
     public float hAxis;
     public float vAxis;
     public float uiVAxis = 0f;
@@ -47,9 +53,9 @@ public class Player_ikim : MonoBehaviour
     bool wDown;
     public bool jDown = false;   // 키보드 입력
     public bool uiJDown = false;
-    
+
     bool iDown;
-    
+
     bool sDown1;
     bool sDown2;
     bool sDown3;
@@ -59,7 +65,7 @@ public class Player_ikim : MonoBehaviour
     bool isJump;
     bool isDodge;
     bool isSwap;
-    
+
     Vector3 moveVec;
     Rigidbody rigid;
     Animator anim;
@@ -73,7 +79,7 @@ public class Player_ikim : MonoBehaviour
     public Weapon equipWeapon;
 
     int equipWeaponIndex = -1; // 현재 장착된 무기 인덱스
-    
+
     [SerializeField]
     float maxSlopeAngle = 45f;
     [SerializeField]
@@ -95,6 +101,7 @@ public class Player_ikim : MonoBehaviour
 
     // 카메라의 수평(Yaw) 방향으로 플레이어를 정렬합니다.
     // instant = true 로 호출하면 즉시 회전(기존 동작)
+
     void AlignToCameraYaw(bool instant = false)
     {
         if (MainCamera == null) return;
@@ -126,7 +133,8 @@ public class Player_ikim : MonoBehaviour
     //     transform.rotation = Quaternion.Euler(0f, target.eulerAngles.y, 0f);
     // } */
 
-    
+    //  public FixedJoystick joystick; // 추가: 모바일 조이스틱을 연결 (없으면 null)
+    // [SerializeField] float joystickDeadzone = 0.15f; // 조이스틱 무시 임계값
 
     void Start()
     {
@@ -149,42 +157,30 @@ public class Player_ikim : MonoBehaviour
         //PlayerPrefs.SetInt("MaxScore", 111000);
         Debug.Log(PlayerPrefs.GetInt("MaxScore"));
         //PlayerPrefs.SetInt("MaxScore", 111000);
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
         Debug.Log("jump" + isJump + ", " + "dodge" + isDodge + ", " + "swap" + isSwap);
-        if (Input.GetKeyDown(KeyCode.Escape))
+        // old key
+        // if (Input.GetKeyDown(KeyCode.Escape))
+        // {
+        //     Application.Quit();
+        // }
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             Application.Quit();
         }
         idleTimer += Time.deltaTime;
         if (idleTimer > actionInterval)
-        {           
+        {
             anim.SetTrigger("goIdle");
             idleTimer = 0f;
         }
-        
-        //  if (Input.anyKeyDown || Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
-        //     {
-        //         anim.SetTrigger("doShot");
-        //         idleTimer = 0f;
-        //     }
 
         SetCursorVisibility();
-         // Update나 터치-드래그 처리부 상단에:
-        // bool anyTouch = Input.touchCount > 0;
-        // bool touchOverUI = AnyTouchOverUI(); // Player_ikim에 넣어둔 헬퍼를 참조 가능하면 사용
-        // // bool movementUIActive = Mathf.Abs(uiHAxis) > 0f || Mathf.Abs(uiVAxis) > 0f;
-        // // UI 이동 조작 중이거나 터치가 UI 위라면 카메라 회전 무시
-        // if (anyTouch || touchOverUI)
-        // {
-        //     // 카메라 회전 처리 스킵
-        //     return;
-        // }
-
 
         GetInput();
         if (Mathf.Abs(uiVAxis) > Mathf.Abs(vAxis))
@@ -219,18 +215,26 @@ public class Player_ikim : MonoBehaviour
         // {
         //     Dodge();            
         // }
-        Dodge();            
+        Dodge();
         Swap();
         Interact();
-    
-   
+
+
     }
 
     void SetCursorVisibility()
     {
-        if (Input.GetKeyDown(KeyCode.LeftAlt))
+        // old key
+        // if (Input.GetKeyDown(KeyCode.LeftAlt))
+        // {
+        //     cursorVisible = !cursorVisible; // 토글
+        //     Cursor.visible = cursorVisible;
+        //     Cursor.lockState = cursorVisible ? CursorLockMode.None : CursorLockMode.Locked;
+        // }
+
+        if (Keyboard.current != null && Keyboard.current.leftAltKey.wasPressedThisFrame)
         {
-            cursorVisible = !cursorVisible; // 토글
+            cursorVisible = !cursorVisible;
             Cursor.visible = cursorVisible;
             Cursor.lockState = cursorVisible ? CursorLockMode.None : CursorLockMode.Locked;
         }
@@ -250,21 +254,95 @@ public class Player_ikim : MonoBehaviour
 // #endif
          return false;
     }*/
-    
+
 
     void GetInput()
     {
-        hAxis = Input.GetAxisRaw("Horizontal");
-        vAxis = Input.GetAxisRaw("Vertical");
-        wDown = Input.GetButton("Walk");
-        jDown = Input.GetButtonDown("Jump");
-        fDown = Input.GetButton("Fire1");
-        iDown = Input.GetButtonDown("Interact");
-        sDown1 = Input.GetButtonDown("Swap1");
-        sDown2 = Input.GetButtonDown("Swap2");
-        sDown3 = Input.GetButtonDown("Swap3");
-        sDown4 = Input.GetButtonDown("Swap4");
-        dDown = Input.GetButtonDown("Dodge");
+        float inputH = 0f;
+        float inputV = 0f;
+
+        // old key
+        // hAxis = Input.GetAxisRaw("Horizontal");
+        // vAxis = Input.GetAxisRaw("Vertical");
+        // wDown = Input.GetButton("Walk");
+        // jDown = Input.GetButtonDown("Jump");
+        // fDown = Input.GetButton("Fire1");
+        // iDown = Input.GetButtonDown("Interact");
+        // sDown1 = Input.GetButtonDown("Swap1");
+        // sDown2 = Input.GetButtonDown("Swap2");
+        // sDown3 = Input.GetButtonDown("Swap3");
+        // sDown4 = Input.GetButtonDown("Swap4");
+        // dDown = Input.GetButtonDown("Dodge");
+
+        // 조이스틱 입력 처리
+        // if (joystick != null)
+        // {
+        //     hAxis = joystick.Horizontal;
+        //     vAxis = joystick.Vertical;
+        // }
+        //     float joyH = (joystick != null) ? joystick.Horizontal : 0f;
+        //    float joyV = (joystick != null) ? joystick.Vertical : 0f;
+        //     hAxis = Mathf.Abs(joyH) > joystickDeadzone ? joyH : Input.GetAxisRaw("Horizontal");
+        //     vAxis = Mathf.Abs(joyV) > joystickDeadzone ? joyV : Input.GetAxisRaw("Vertical");
+        
+
+        if (Gamepad.current != null)
+        {
+            Vector2 ls = Gamepad.current.leftStick.ReadValue();
+            if (Mathf.Abs(ls.x) > 0.01f || Mathf.Abs(ls.y) > 0.01f)
+            {
+                inputH = ls.x;
+                inputV = ls.y;
+            }
+        }
+
+        // Keyboard WASD / Arrow
+        if (Keyboard.current != null)
+        {
+            float kbH = 0f;
+            float kbV = 0f;
+            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) kbH += 1f;
+            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) kbH -= 1f;
+            if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) kbV += 1f;
+            if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) kbV -= 1f;
+
+            // 합성. 키보드 입력이 유효하면 적용 (게임패드는 우선이므로 값이 0일 때만 덮어씀)
+            if (Mathf.Abs(inputH) < 0.01f) inputH = kbH;
+            if (Mathf.Abs(inputV) < 0.01f) inputV = kbV;
+        }
+
+        hAxis = inputH;
+        vAxis = inputV;
+
+        // Walk (shift)
+        wDown = (Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed)
+                || (Gamepad.current != null && Gamepad.current.leftShoulder.isPressed);
+
+        // Jump (space / gamepad south)
+        jDown = (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
+                || (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame);
+
+        // Fire (mouse left hold / gamepad right trigger)
+        bool mousePressed = Mouse.current != null && Mouse.current.leftButton.isPressed;
+        bool gpFire = Gamepad.current != null && Gamepad.current.rightTrigger.isPressed;
+        fDown = mousePressed || gpFire || (Keyboard.current != null && Keyboard.current.leftCtrlKey.isPressed);
+
+        // Interact (E)
+        iDown = (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                || (Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame);
+
+        // Swap 1..4 (각 숫자키)
+        sDown1 = (Keyboard.current != null && Keyboard.current.digit1Key.wasPressedThisFrame);
+        sDown2 = (Keyboard.current != null && Keyboard.current.digit2Key.wasPressedThisFrame);
+        sDown3 = (Keyboard.current != null && Keyboard.current.digit3Key.wasPressedThisFrame);
+        sDown4 = (Keyboard.current != null && Keyboard.current.digit4Key.wasPressedThisFrame);
+
+        // Dodge (LeftCtrl or gamepad east)
+        dDown = (Keyboard.current != null && Keyboard.current.leftCtrlKey.wasPressedThisFrame)
+                || (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame);
+
+        // 터치 입력이 있는지 확인(간단). UI 터치 판별은 Attack 등에서 별도 처리.
+        // uiJDown / uiFDown 는 UI 버튼에서 직접 세팅하도록 public으로 유지
     }
     void Move()
     {
@@ -294,8 +372,6 @@ public class Player_ikim : MonoBehaviour
         {
             // 경사 너무 심하면 이동 금지
             moveVec = Vector3.zero;
-
-
         }
         // 3. 이동 벡터를 지형 normal 평면에 투영 (slope 타고 이동)
         Vector3 slopeMoveVec = Vector3.ProjectOnPlane(moveVec, groundNormal).normalized;
@@ -311,8 +387,9 @@ public class Player_ikim : MonoBehaviour
     }
     void Turn()
     {
-
-        transform.LookAt(transform.position + moveVec);
+        if (moveVec != Vector3.zero)
+            transform.LookAt(transform.position + moveVec);
+        //transform.LookAt(transform.position + moveVec);
     }
 
     // public void MoveUp() {
@@ -331,12 +408,12 @@ public class Player_ikim : MonoBehaviour
             anim.SetBool("isJump", true);
             anim.SetTrigger("doJump");
             isJump = true;
-            
+
         }
-          
-        
+
+
     }
-   
+
 
     void Attack()
     {
@@ -345,17 +422,18 @@ public class Player_ikim : MonoBehaviour
             return; // 무기가 장착되어 있지 않으면 공격 불가
         }
 
-        if (EventSystem.current.IsPointerOverGameObject())
-        {
-            // 현재 UI 위에 마우스 있음 - 공격 입력 무시
-            // if(!uiFDown)
-            return;
-        }
+        // old key
+        // if (EventSystem.current.IsPointerOverGameObject())
+        // {
+        //     // 현재 UI 위에 마우스 있음 - 공격 입력 무시
+        //     // if(!uiFDown)
+        //     return;
+        // }
 
-        if (Input.touchCount > 0)
-        {
-            return;
-        }
+        // if (Input.touchCount > 0)
+        // {
+        //     return;
+        // }
 
         // if (Input.touchCount > 0 && EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId))
         // if (Input.touchCount > 0)
@@ -369,27 +447,48 @@ public class Player_ikim : MonoBehaviour
         // }
 
         // bool isTouchOverUI = false;
-// for (int i = 0; i < Input.touchCount; i++)
-// {
-//     Touch t = Input.GetTouch(i);
-//     if (t.phase == TouchPhase.Began)
-//     {
-//         if (EventSystem.current.IsPointerOverGameObject(t.fingerId))
-//         {
-//             isTouchOverUI = true;
-//             break;
-//         }
-//     }
-// }
+        // for (int i = 0; i < Input.touchCount; i++)
+        // {
+        //     Touch t = Input.GetTouch(i);
+        //     if (t.phase == TouchPhase.Began)
+        //     {
+        //         if (EventSystem.current.IsPointerOverGameObject(t.fingerId))
+        //         {
+        //             isTouchOverUI = true;
+        //             break;
+        //         }
+        //     }
+        // }
 
-// if (isTouchOverUI)
-// {
-//     // 방금 UI를 터치해서 입력 시작 = 배경 입력 무시
-//     return;
-// }
+        // if (isTouchOverUI)
+        // {
+        //     // 방금 UI를 터치해서 입력 시작 = 배경 입력 무시
+        //     return;
+        // }
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+
+        // Touch 입력이 있으면 각 터치의 fingerId로 UI 체크
+        if (Touchscreen.current != null)
+        {
+            foreach (var t in Touchscreen.current.touches)
+            {
+                if (t.press.isPressed)
+                {
+                    int id = (int)t.touchId.ReadValue();
+                    if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(id))
+                    {
+                        return;
+                    }
+                }
+            }
+        }
 
         fireDelay += Time.deltaTime; // 공격 후 재사용 대기 시간 증가
-        isFireReady = fireDelay >= equipWeapon.rate; // 공격 가능 여부 판단
+        isFireReady = fireDelay >= (equipWeapon != null ? equipWeapon.rate : 0f);
+        // isFireReady = fireDelay >= equipWeapon.rate; // 공격 가능 여부 판단
 
         if ((fDown || uiFDown) && isFireReady && !isDodge && !isSwap)
         {
@@ -397,7 +496,7 @@ public class Player_ikim : MonoBehaviour
             // 무기 사용
             AlignToCameraYaw(true);
             Vector3 aimDir = MainCamera != null ? MainCamera.forward.normalized : transform.forward;
-            
+
             if (equipWeapon != null) equipWeapon.Use(aimDir);
             // equipWeapon.Use();
             anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ? "doSwing" : "doShot");
@@ -429,7 +528,7 @@ public class Player_ikim : MonoBehaviour
         equipWeapon.Use();
         anim.SetTrigger(equipWeapon.type == Weapon.Type.Melee ? "doSwing" : "doShot");
         // isFireReady = false; // 공격 후 재사용 대기 시간 설정
-        fireDelay = 0; // 공격 속도에 따라 재사용 대기 시간 설정
+        fireDelay = 0f; // 공격 속도에 따라 재사용 대기 시간 설정
                        // isFireReady = false; // 공격 후 재사용 대기 시간 설정
         uiFDown = false;
         // }
@@ -557,26 +656,26 @@ public class Player_ikim : MonoBehaviour
     }
     public void Dodge2()
     {
-        
-            if (!isSwap && !isDodge)
-            {
-                isDodge = true;
-                
-                 // 대시 속도 증가
-                if (Speed < maxSpeed)
-                {
-                    Speed *= 1.5f; // 대시 속도 증가
-                }
-                rigid.AddForce(transform.forward * 15, ForceMode.Impulse);
 
-                anim.SetTrigger("doDodge");
-            
-                Invoke("DodgeOut", 0.4f);
+        if (!isSwap && !isDodge)
+        {
+            isDodge = true;
+
+            // 대시 속도 증가
+            if (Speed < maxSpeed)
+            {
+                Speed *= 1.5f; // 대시 속도 증가
             }
-    
-        
+            rigid.AddForce(transform.forward * 15, ForceMode.Impulse);
+
+            anim.SetTrigger("doDodge");
+
+            Invoke("DodgeOut", 0.4f);
+        }
+
+
     }
-    
+
 
     void Swap()
     {
@@ -689,9 +788,9 @@ public class Player_ikim : MonoBehaviour
 
 
 
-        void SwapOut()
+    void SwapOut()
     {
-        
+
         isSwap = false;
 
     }
@@ -740,7 +839,7 @@ public class Player_ikim : MonoBehaviour
                 // nearObject = null; // 상호작용 후에는 상호작용 오브젝트 초기화
 
             }
-            
+
         }
     }
 
@@ -797,6 +896,6 @@ public class Player_ikim : MonoBehaviour
             // shop.Exit();
             // nearObject = null;
         }
-    }    
+    }
 
 }
